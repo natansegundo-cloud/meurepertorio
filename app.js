@@ -52,8 +52,8 @@
   }
   var DB = {
     all: function () { return tx('readonly', function (s, m) { return m ? Object.keys(mem).map(function (k) { return mem[k]; }) : s.getAll(); }); },
-    put: function (o) { return tx('readwrite', function (s, m) { if (m) { mem[o.id] = o; return null; } return s.put(o); }); },
-    del: function (id) { return tx('readwrite', function (s, m) { if (m) { delete mem[id]; return null; } return s.delete(id); }); }
+    put: function (o, silent) { var p = tx('readwrite', function (s, m) { if (m) { mem[o.id] = o; return null; } return s.put(o); }); if (!silent && window.MeuRepertorioCloud) window.MeuRepertorioCloud.queueUpsert(o); return p; },
+    del: function (id, silent) { var p = tx('readwrite', function (s, m) { if (m) { delete mem[id]; return null; } return s.delete(id); }); if (!silent && window.MeuRepertorioCloud) window.MeuRepertorioCloud.queueDelete(id); return p; }
   };
 
   /* ---------- estado ---------- */
@@ -345,7 +345,7 @@
     var song = id ? S.songs.filter(function (s) { return s.id === id; })[0] : null;
     if (id && !song) { location.replace('#lista'); return; }
     setView('edit');
-    var d = song ? { id: song.id, title: song.title, artist: song.artist, key: song.key, body: song.body, pdf: song.pdf, createdAt: song.createdAt, semi: song.semi, pref: song.pref, report: null, editing: true }
+    var d = song ? { id: song.id, title: song.title, artist: song.artist, key: song.key, body: song.body, pdf: song.pdf, pdfPath: song.pdfPath, createdAt: song.createdAt, semi: song.semi, pref: song.pref, report: null, editing: true }
       : (S.draft || { id: uid(), title: '', artist: '', key: '', body: '', report: null, editing: false });
     S.draft = d;
     topbar({ back: true, title: song ? 'Editar cifra' : 'Nova cifra', right: '<button class="btn pri sm" data-act="save">Salvar</button>' });
@@ -359,7 +359,7 @@
       '<div class="field"><label for="f-body">Cifra</label><textarea id="f-body" class="body" spellcheck="false" autocapitalize="off" placeholder="Cole aqui a cifra completa">' + esc(d.body) + '</textarea></div>' +
       '<div id="rep"></div>' +
       '<div class="acts"><button class="btn sm" data-act="tidy">Organizar de novo</button>' +
-      (d.editing && d.pdf ? '<button class="btn sm" data-act="openpdf">' + ic('file', 18) + 'Abrir PDF original</button>' : '') +
+      (d.editing && (d.pdf || d.pdfPath) ? '<button class="btn sm" data-act="openpdf">' + ic('file', 18) + 'Abrir PDF original</button>' : '') +
       (d.editing ? '<button class="btn sm warn" data-act="del">' + ic('trash', 18) + 'Excluir cifra</button>' : '') + '</div>' +
       '<section class="prev"><h2>Prévia (toque num acorde para ver o desenho)</h2><div class="song" id="song"></div></section>';
     paintReport(); previewDraft();
@@ -407,6 +407,7 @@
     var old = S.songs.filter(function (s) { return s.id === d.id; })[0];
     var song = { id: d.id, title: d.title, artist: d.artist, key: d.key, body: d.body.replace(/\s+$/, ''), createdAt: d.createdAt || Date.now(), updatedAt: Date.now(), semi: old ? old.semi || 0 : 0, pref: old ? old.pref || 'auto' : 'auto' };
     if (d.pdf) song.pdf = d.pdf;
+    if (d.pdfPath) song.pdfPath = d.pdfPath;
     DB.put(song).then(loadSongs).then(function () { S.draft = null; toast('Cifra salva'); location.replace('#musica-' + song.id); });
   }
 
@@ -504,7 +505,9 @@
     DB.all().then(function (songs) {
       return Promise.all(songs.map(function (s) {
         var c = Object.assign({}, s);
-        return c.pdf ? blobToDataURL(c.pdf).then(function (u) { c.pdf = u; return c; }) : Promise.resolve(c);
+        if (c.pdf instanceof Blob) return blobToDataURL(c.pdf).then(function (u) { c.pdf = u; return c; });
+        if (c.pdfPath && window.MeuRepertorioCloud) return window.MeuRepertorioCloud.downloadPdf(c.pdfPath).then(function (b) { return b ? blobToDataURL(b).then(function (u) { c.pdf = u; return c; }) : c; });
+        return Promise.resolve(c);
       }));
     }).then(function (list) {
       var blob = new Blob([JSON.stringify({ app: 'meu-repertorio', v: 1, songs: list })], { type: 'application/json' });
@@ -532,11 +535,26 @@
   $('#sheet').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
   function themeLabel() { return { auto: 'Automático', light: 'Claro', dark: 'Escuro' }[store.get('theme', 'auto')]; }
   function menuList() {
-    openSheet('<h3>Caderno</h3>' +
+    openSheet('<h3>Meu Repertório</h3>' +
+      '<button data-act="cloud">' + ic('up') + 'Sincronizar na nuvem<small>' + (window.MeuRepertorioCloud ? window.MeuRepertorioCloud.statusLabel() : 'indisponível') + '</small></button>' +
       '<button data-act="theme">' + ic('moon') + 'Tema<small>' + themeLabel() + '</small></button>' +
       '<button data-act="export">' + ic('down') + 'Salvar backup (arquivo)</button>' +
       '<button data-act="restore">' + ic('up') + 'Restaurar backup</button>' +
       (installEv ? '<button data-act="install">' + ic('phone') + 'Instalar no aparelho</button>' : ''));
+  }
+  function cloudMenu() {
+    var c = window.MeuRepertorioCloud, user = c && c.getUser(), h = '<h3>Sincronização</h3>';
+    if (!c || !c.isConfigured()) { openSheet(h + '<p>A sincronização na nuvem ainda não está configurada.</p>'); return; }
+    if (user) {
+      h += '<p>Conectado como <b>' + esc(user.email || 'sua conta') + '</b>.</p>';
+      h += '<button data-act="cloud-sync">' + ic('up') + 'Sincronizar agora</button>';
+      h += '<button data-act="cloud-logout">' + ic('x') + 'Sair desta conta</button>';
+    } else {
+      h += '<p>Digite seu e-mail. Você receberá um link para entrar sem senha.</p>';
+      h += '<input id="cloud-email" type="email" placeholder="seu@email.com" autocomplete="email">';
+      h += '<button data-act="cloud-login">' + ic('up') + 'Enviar link de acesso</button>';
+    }
+    openSheet(h);
   }
   function menuSong() {
     var fs = Number($('.song') && $('.song').dataset.fs) || 14;
@@ -545,8 +563,16 @@
       '<button data-act="fs+">' + ic('type', 24) + 'Letra maior</button>' +
       '<button data-act="fsfit">' + ic('fit') + 'Ajustar à largura da tela</button>' +
       '<button data-act="strip">' + ic('play', 18) + (S.strip ? 'Esconder faixa de acordes' : 'Mostrar faixa de acordes') + '</button>' +
-      (S.cur.pdf ? '<button data-act="openpdf">' + ic('file') + 'Abrir PDF original</button>' : '') +
+      ((S.cur.pdf || S.cur.pdfPath) ? '<button data-act="openpdf">' + ic('file') + 'Abrir PDF original</button>' : '') +
       '<h3>Aparência</h3><button data-act="theme">' + ic('moon') + 'Tema<small>' + themeLabel() + '</small></button>');
+  }
+
+  function openPdf(song) {
+    if (!song) return;
+    var ready = function (blob) { if (!blob) { toast('PDF original indisponível'); return; } var u = URL.createObjectURL(blob); window.open(u, '_blank') || (location.href = u); };
+    if (song.pdf instanceof Blob) { ready(song.pdf); return; }
+    if (song.pdfPath && window.MeuRepertorioCloud) { toast('Baixando PDF…'); window.MeuRepertorioCloud.downloadPdf(song.pdfPath).then(function (b) { if (b) song.pdf = b; ready(b); }); return; }
+    toast('PDF original indisponível');
   }
 
   /* ---------- cliques ---------- */
@@ -562,6 +588,14 @@
     switch (a) {
       case 'back': if (history.length > 1 && S.view !== 'list') history.back(); else location.hash = '#lista'; break;
       case 'menu': menuList(); break;
+      case 'cloud': cloudMenu(); break;
+      case 'cloud-sync': closeSheet(); if (window.MeuRepertorioCloud) window.MeuRepertorioCloud.syncNow().then(function (r) { toast(r && r.ok ? 'Repertório sincronizado' : 'Não foi possível sincronizar agora'); }); break;
+      case 'cloud-logout': closeSheet(); if (window.MeuRepertorioCloud) window.MeuRepertorioCloud.signOut().then(function () { toast('Sessão encerrada'); }); break;
+      case 'cloud-login':
+        var email = ($('#cloud-email') || {}).value || '';
+        if (!email.trim()) { toast('Digite seu e-mail'); break; }
+        if (window.MeuRepertorioCloud) window.MeuRepertorioCloud.signIn(email.trim()).then(function (r) { if (r && r.error) toast(r.error); else { closeSheet(); toast('Link de acesso enviado para seu e-mail'); } });
+        break;
       case 'smenu': menuSong(); break;
       case 'new': S.draft = null; location.hash = '#nova'; break;
       case 'file': closeSheet(); $('#pick').click(); break;
@@ -581,7 +615,7 @@
       case 'fs-': case 'fs+': var now = Number($('.song').dataset.fs) || 14; store.set('fs', Math.max(9, Math.min(30, now + (a === 'fs+' ? 1 : -1)))); applyFont(); b.querySelector('small') && (b.querySelector('small').textContent = $('.song').dataset.fs + ' px'); break;
       case 'fsfit': store.set('fs', 0); applyFont(); closeSheet(); break;
       case 'strip': S.strip = !S.strip; store.set('strip', S.strip); closeSheet(); renderStrip(); break;
-      case 'openpdf': closeSheet(); var pdf = (S.view === 'edit' ? S.draft : cur).pdf; if (pdf) { var u = URL.createObjectURL(pdf); window.open(u, '_blank') || (location.href = u); } break;
+      case 'openpdf': closeSheet(); openPdf(S.view === 'edit' ? S.draft : cur); break;
       case 'paste':
         if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(function (t) { if (t && t.trim()) applyImport(t); else toast('A área de transferência está vazia.'); }, function () { toast('O navegador não deixou ler. Toque no campo da cifra e cole.'); $('#f-body').focus(); });
         else { toast('Toque no campo da cifra e cole.'); $('#f-body').focus(); }
@@ -628,6 +662,13 @@
 
   loadSongs().then(seedIfNew).then(function () {
     route();
+    if (window.MeuRepertorioCloud) window.MeuRepertorioCloud.start({
+      getSongs: function () { return DB.all(); },
+      put: function (song, silent) { return DB.put(song, silent); },
+      del: function (id, silent) { return DB.del(id, silent); },
+      reload: function () { return loadSongs().then(function () { if (S.view === 'list') renderList(); }); },
+      onStatus: function () { if (S.view === 'list' && $('#cnt')) renderList(); }
+    });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if ($('.song')) applyFont(); });
   });
 

@@ -24,7 +24,15 @@ COMO ADICIONAR MÚSICAS
 
 DADOS E BACKUP
 As cifras ficam no aparelho (IndexedDB). Celular e computador não sincronizam
-sozinhos. Use Menu > Salvar backup e, no outro aparelho, Restaurar backup.
+sozinhos até você entrar na nuvem. Use Menu > Sincronizar na nuvem para entrar
+com o link enviado por e-mail. O backup manual continua disponível em Menu.
+
+CONFIGURAÇÃO DA NUVEM
+1. No Supabase, abra o SQL Editor e execute supabase/schema.sql.
+2. Em Authentication > URL Configuration, adicione o endereço publicado na Vercel.
+3. No app, abra Menu > Sincronizar na nuvem e entre com seu e-mail.
+4. Nunca coloque uma secret/service_role key no navegador; o app usa somente a
+   publishable key e as políticas RLS da tabela.
 
 QUANDO MEXER NOS ARQUIVOS
 Se editar qualquer arquivo, incremente VERSAO em sw.js para os aparelhos

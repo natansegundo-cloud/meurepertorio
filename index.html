@@ -149,6 +149,8 @@ textarea.body{width:100%;min-height:46vh;border-radius:12px;border:1px solid var
 .shd button{width:100%;display:flex;align-items:center;gap:14px;text-align:left;min-height:52px;padding:0 12px;border:0;background:transparent;border-radius:12px;font-weight:500}
 .shd button:hover{background:var(--surface-2)}
 .shd button small{margin-left:auto;color:var(--ink-2)}
+.shd input{height:46px;margin:8px 12px 12px;width:calc(100% - 24px);border-radius:12px;border:1px solid var(--line-2);background:var(--surface);padding:0 12px}
+.shd p{margin:8px 12px 12px;color:var(--ink-2);font-size:14px}
 #toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;max-width:calc(100vw - 32px);box-shadow:var(--shadow)}
 @media (prefers-reduced-motion:no-preference){#toast{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translate(-50%,6px)}}}
 </style>
@@ -164,6 +166,9 @@ textarea.body{width:100%;min-height:46vh;border-radius:12px;border:1px solid var
 <input type="file" id="pick" multiple accept=".pdf,.txt,.json,application/pdf,text/plain,application/json" hidden>
 <script src="engine.js"></script>
 <script src="seed.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="supabase-config.js"></script>
+<script src="supabase-sync.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
