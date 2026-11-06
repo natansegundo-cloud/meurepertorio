@@ -6,7 +6,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>Meu Repertório</title>
 <meta name="description" content="Meu repertório de músicas e cifras, com transposição e diagramas de acordes, funcionando sem internet.">
-<meta name="theme-color" content="#EFF2F0">
+<meta name="theme-color" content="#0B110E">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -295,6 +295,120 @@ h1.hd::before{content:"BIBLIOTECA";display:block;margin-bottom:14px;color:var(--
   .show-nav strong{min-width:48px;font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+</style>
+<style>
+/* Sistema visual refinado: caderno noturno, dourado discreto e pouca ornamentação. */
+:root{
+  --bg:#F4F5F1;--surface:#FBFCF9;--surface-2:#E8EDE9;--ink:#17221D;--ink-2:#68766F;
+  --line:#D7E0DA;--line-2:#B4C2B9;--accent:#98652F;--accent-ink:#FFF9F0;--accent-soft:#F1E4D0;
+  --danger:#A94335;--shadow:0 12px 28px rgba(23,34,29,.08);--radius-sm:9px;--radius-md:13px;--radius-lg:18px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B110E;--surface:#111B16;--surface-2:#18241D;--ink:#E8ECE8;--ink-2:#A3AEA7;
+  --line:#26352C;--line-2:#3D4D43;--accent:#D9A85F;--accent-ink:#1B140A;--accent-soft:#332817;
+  --danger:#E07868;--shadow:0 16px 38px rgba(0,0,0,.22);color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0B110E;--surface:#111B16;--surface-2:#18241D;--ink:#E8ECE8;--ink-2:#A3AEA7;
+  --line:#26352C;--line-2:#3D4D43;--accent:#D9A85F;--accent-ink:#1B140A;--accent-soft:#332817;
+  --danger:#E07868;--shadow:0 16px 38px rgba(0,0,0,.22);color-scheme:dark;
+}
+
+html{scroll-behavior:smooth;background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-synthesis:none}
+body::before{display:none}
+.wrap,.bar,.dock .in,.show-shell{max-width:940px}
+
+#top{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:10px}
+#top.scrolled{border-bottom-color:var(--line)}
+.bar{min-height:46px}
+.bar .ttl b{font-size:18px;font-weight:700;letter-spacing:-.035em}
+.bar .ttl span{font-size:12px;letter-spacing:.01em}
+.ib{width:42px;height:42px;border-radius:var(--radius-sm);transition:background-color .18s ease,color .18s ease,transform .18s ease}
+.ib:hover{background:var(--surface-2);color:var(--accent);transform:none}
+.ib:active,.btn:active,.pill:active,.seg button:active,.shd button:active{transform:translateY(1px) scale(.985)}
+
+h1.hd{font-size:clamp(36px,6vw,52px);line-height:.98;letter-spacing:-.06em;margin:clamp(42px,8vw,76px) 0 9px}
+h1.hd::before{content:"CADERNO DE CIFRAS";margin-bottom:13px;color:var(--accent);font-size:10px;letter-spacing:.16em;font-weight:700}
+.sub{margin-bottom:25px;color:var(--ink-2);font-size:14px}
+.sub::before{width:6px;height:6px;background:var(--accent);box-shadow:none}
+.tabs{gap:0;margin-bottom:20px;border-bottom:1px solid var(--line)}
+.tabs button{flex:0 0 auto;min-width:124px;min-height:46px;padding:0 16px;color:var(--ink-2);font-size:14px}
+.tabs button.on{border-bottom-color:var(--accent);color:var(--accent)}
+
+.search{margin-bottom:16px}
+.search input{height:52px;border-radius:var(--radius-md);border-color:var(--line);background:var(--surface);box-shadow:none}
+.search input:hover,.search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search .ic{top:16px;color:var(--ink-2)}
+.songs{gap:9px}
+.songs a{min-height:74px;padding:15px 17px;border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface);box-shadow:none}
+.songs a:hover{border-color:var(--accent);background:var(--surface);box-shadow:none;transform:translateY(-1px)}
+.songs a::after{color:var(--accent)}
+.songs .t{font-size:18px;letter-spacing:-.025em}
+.songs .a{color:var(--ink-2)}
+.songs .k{background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent);border-radius:7px}
+.empty{border-color:var(--line-2);background:var(--surface);border-radius:var(--radius-md)}
+
+.btn{min-height:44px;border-radius:var(--radius-sm);border-color:var(--line-2);background:var(--surface);box-shadow:none;font-size:14px;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
+.btn:hover{background:var(--surface-2);border-color:var(--accent);box-shadow:none;transform:translateY(-1px)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:none}
+.btn.pri:hover{background:var(--accent);color:var(--accent-ink);filter:brightness(1.07)}
+.btn.warn{color:var(--danger);border-color:var(--danger)}
+.dock{padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line)}
+.dock .in{gap:8px;padding:6px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.dock .btn{min-height:50px;border-radius:var(--radius-sm)}
+
+.tools{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;padding-top:7px}
+.tools .in{gap:7px}
+.seg,.pill{border-color:var(--line-2);background:var(--surface);box-shadow:none;border-radius:var(--radius-sm)}
+.seg button{height:42px}
+.seg button:hover,.pill:hover{background:var(--surface-2);border-color:var(--accent)}
+.tomv b{color:var(--accent)}
+.strip{padding-top:4px;padding-bottom:12px}
+.strip .c{border-color:var(--line);background:var(--surface);border-radius:var(--radius-sm);box-shadow:none}
+.strip .c:hover{border-color:var(--accent);background:var(--accent-soft)}
+.song{padding-top:16px;font-size:var(--fs,14px);line-height:1.42}
+.sec{color:var(--accent);letter-spacing:.12em;margin-top:1.7em}
+.sec::after{background:var(--line)}
+.ch{color:var(--accent);border-radius:4px}
+.ch:hover,.ch.on{background:var(--accent-soft)}
+
+.rep-card{border-color:var(--line);border-radius:var(--radius-md);background:var(--surface);box-shadow:none}
+.rep-card:hover{border-color:var(--accent);background:var(--surface);box-shadow:none;transform:translateY(-1px)}
+.rep-item{border-color:var(--line);border-radius:var(--radius-md);background:var(--surface);box-shadow:none}
+.rep-item.dragging{box-shadow:var(--shadow)}
+.rep-handle{background:var(--surface-2);border-radius:var(--radius-sm)}
+.rep-pick{min-height:56px}
+.rep-section{border-top-color:var(--line)}
+
+.field label{font-size:12px;letter-spacing:.02em}
+.field input,textarea.body{border-color:var(--line);border-radius:var(--radius-sm);background:var(--surface);box-shadow:none}
+.field input:hover,textarea.body:hover{border-color:var(--line-2)}
+.field input:focus,textarea.body:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.rep{border:1px solid var(--line);background:var(--accent-soft);border-radius:var(--radius-sm)}
+.prev{border-top-color:var(--line)}
+
+.sheetb{background:rgba(5,10,7,.46)}
+.shd{border:1px solid var(--line);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--surface);box-shadow:0 -12px 32px rgba(0,0,0,.16)}
+.shd h3{color:var(--accent);letter-spacing:.12em}
+.shd button{min-height:50px;border-radius:var(--radius-sm)}
+.shd button:hover{background:var(--surface-2);color:var(--accent)}
+
+.show-controls{border-bottom-color:var(--line)}
+.show-quiet{border-color:var(--line);background:var(--surface);border-radius:var(--radius-sm)}
+.show-quiet:hover{border-color:var(--accent);background:var(--accent-soft)}
+.show-nav{background:var(--surface);border-top-color:var(--line);backdrop-filter:none;-webkit-backdrop-filter:none}
+.show-nav-btn{border-color:var(--line);background:var(--surface);border-radius:var(--radius-sm)}
+.show-nav-btn:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.show-nav strong{color:var(--accent)}
+#toast{background:var(--ink);color:var(--bg);box-shadow:var(--shadow)}
+
+@media(max-width:560px){
+  h1.hd{font-size:clamp(34px,11vw,44px);margin-top:34px}
+  .tabs button{min-width:50%;padding:0 10px}
+  .dock .btn{font-size:14px;padding:0 9px}
+  .show-nav-btn{min-height:56px}
+}
 </style>
 </head>
 <body>
