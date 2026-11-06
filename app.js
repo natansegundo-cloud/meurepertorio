@@ -1037,7 +1037,21 @@
   }
   window.addEventListener('hashchange', route);
 
-  function loadSongs() { return DB.all().then(function (l) { S.songs = l || []; }); }
+  function loadSongs() {
+    return DB.all().then(function (list) {
+      S.songs = list || [];
+      var migrations = S.songs.map(function (song) {
+        if (song.structure && Array.isArray(song.structure.lines)) return null;
+        var parsed = MusicParser.parse(song.body || '', { extractMeta: false });
+        if (!parsed.valid || !parsed.structure || !parsed.structure.lines.length) return null;
+        var migrated = Object.assign({}, song, { structure: parsed.structure });
+        return DB.put(migrated, true);
+      }).filter(Boolean);
+      return Promise.all(migrations).then(function () {
+        return migrations.length ? DB.all().then(function (fresh) { S.songs = fresh || []; }) : null;
+      });
+    });
+  }
   function loadRepertoires() { return DB.allRepertoires().then(function (l) { S.repertoires = l || []; }); }
 
   function seedIfNew() {

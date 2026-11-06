@@ -36,3 +36,18 @@ test('não salva conteúdo inválido', async ({ page }) => {
   await expect(page.locator('#err')).toContainText('Cole o conteúdo completo');
   expect(page.url()).toMatch(/#nova$/);
 });
+
+test('reprocessa música antiga sem estrutura e exibe acordes clicáveis', async ({ page }) => {
+  await page.goto('/index.html#lista');
+  await page.waitForFunction(() => window.__cifras && window.__cifras.DB);
+  await page.evaluate(() => window.__cifras.DB.put({
+    id: 'old-structure', title: 'Cifra antiga', artist: '', key: 'A',
+    body: 'A7M        Bbº\nMais uma vez\nBm7\nPrisioneiro da solidão',
+    createdAt: Date.now(), updatedAt: Date.now(), semi: 0, pref: 'auto'
+  }));
+  await page.reload();
+  await page.goto('/index.html#musica-old-structure');
+  await expect(page.locator('.song .ch')).toHaveCount(3);
+  const song = await page.evaluate(() => window.__cifras.S.cur);
+  expect(song.structure.chordCount).toBe(3);
+});
