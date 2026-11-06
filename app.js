@@ -72,7 +72,7 @@
   };
 
   /* ---------- estado ---------- */
-  var S = { songs: [], repertoires: [], q: '', repQ: '', draft: null, repDraft: null, repDeleteConfirm: null, show: null, cur: null, view: '', libraryTab: 'songs', scroll: { on: false, speed: store.get('speed', 3) }, strip: store.get('strip', true) };
+  var S = { songs: [], repertoires: [], q: '', repQ: '', draft: null, repDraft: null, repDeleteConfirm: null, show: null, cur: null, view: '', libraryTab: 'songs', scroll: { on: false, speed: store.get('speed', 3) }, strip: store.get('chordDiagrams', false) };
   var HOVER = window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches;
   var uid = function () { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); };
 
@@ -581,7 +581,7 @@
   document.addEventListener('mouseover', function (e) {
     if (!HOVER) return;
     var c = e.target.closest && e.target.closest('.ch');
-    if (c) { clearTimeout(hoverT); hoverT = setTimeout(function () { showCard(c.getAttribute('data-sym'), c); }, 140); }
+    if (c && store.get('diagram', false)) { clearTimeout(hoverT); hoverT = setTimeout(function () { showCard(c.getAttribute('data-sym'), c); }, 140); }
     else if (e.target.closest && e.target.closest('#cc')) clearTimeout(hoverT);
   });
   document.addEventListener('mouseout', function (e) {
@@ -889,8 +889,8 @@
       '<button data-act="fs-">' + ic('type', 18) + 'Letra menor<small>' + fs + ' px</small></button>' +
       '<button data-act="fs+">' + ic('type', 24) + 'Letra maior</button>' +
       '<button data-act="fsfit">' + ic('fit') + 'Ajustar à largura da tela</button>' +
-      '<button data-act="strip">' + ic('play', 18) + (S.strip ? 'Esconder faixa de acordes' : 'Mostrar faixa de acordes') + '</button>' +
-      '<button data-act="diagram">' + ic('play', 18) + 'Tocar em acorde abre diagrama<small>' + (store.get('diagram', true) ? 'Ligado' : 'Desligado') + '</small></button>' +
+      '<button data-act="strip">' + ic('play', 18) + (S.strip ? 'Ocultar desenhos dos acordes' : 'Mostrar desenhos dos acordes') + '</button>' +
+      '<button data-act="diagram">' + ic('play', 18) + 'Tocar em acorde abre diagrama<small>' + (store.get('diagram', false) ? 'Ligado' : 'Desligado') + '</small></button>' +
       '<button data-act="add-to-repertoire-menu">' + ic('plus', 18) + 'Adicionar a um repertório</button>' +
       ((S.cur.pdf || S.cur.pdfPath) ? '<button data-act="openpdf">' + ic('file') + 'Abrir PDF original</button>' : '') +
       '<h3>Aparência</h3><button data-act="theme">' + ic('moon') + 'Tema<small>' + themeLabel() + '</small></button>');
@@ -907,7 +907,7 @@
   /* ---------- cliques ---------- */
   document.addEventListener('click', function (e) {
     var ch = e.target.closest && e.target.closest('.ch, .strip .c');
-    if (ch) { if (!store.get('diagram', true)) return; if (HOVER && ch.classList.contains('ch') && card.sym === ch.getAttribute('data-sym')) { card.pinned = true; return; } card.pinned = !!HOVER; showCard(ch.getAttribute('data-sym'), ch); return; }
+    if (ch) { if (!store.get('diagram', false)) return; if (HOVER && ch.classList.contains('ch') && card.sym === ch.getAttribute('data-sym')) { card.pinned = true; return; } card.pinned = !!HOVER; showCard(ch.getAttribute('data-sym'), ch); return; }
     var th = e.target.closest && e.target.closest('.cc-all button');
     if (th) { card.idx = +th.getAttribute('data-i'); var m = store.get('var', {}); m[card.sym] = card.idx; store.set('var', m); paintCard(); placeCard(); if (S.view === 'song') renderStrip(); return; }
     var b = e.target.closest && e.target.closest('[data-act]');
@@ -977,14 +977,14 @@
       case 'cc-close': card.pinned = false; hideCard(); break;
       case 'cc-prev': stepCard(-1); break;
       case 'cc-next': stepCard(1); break;
-      case 'diagram': store.set('diagram', !store.get('diagram', true)); menuSong(); break;
+      case 'diagram': store.set('diagram', !store.get('diagram', false)); menuSong(); break;
       case 'theme': var order = ['auto', 'light', 'dark'], t = store.get('theme', 'auto'); store.set('theme', order[(order.indexOf(t) + 1) % 3]); applyTheme(); b.querySelector('small').textContent = themeLabel(); break;
       case 'export': closeSheet(); exportBackup(); break;
       case 'restore': closeSheet(); $('#pick').click(); break;
       case 'install': closeSheet(); if (installEv) { installEv.prompt(); installEv = null; } break;
       case 'fs-': case 'fs+': var now = Number($('.song').dataset.fs) || 14; store.set('fs', Math.max(9, Math.min(30, now + (a === 'fs+' ? 1 : -1)))); applyFont(); b.querySelector('small') && (b.querySelector('small').textContent = $('.song').dataset.fs + ' px'); break;
       case 'fsfit': store.set('fs', 0); applyFont(); closeSheet(); break;
-      case 'strip': S.strip = !S.strip; store.set('strip', S.strip); closeSheet(); renderStrip(); break;
+      case 'strip': S.strip = !S.strip; store.set('chordDiagrams', S.strip); closeSheet(); renderStrip(); break;
       case 'openpdf': closeSheet(); openPdf(S.view === 'edit' ? S.draft : cur); break;
       case 'import-save': importAndSaveDraft(); break;
       case 'paste':

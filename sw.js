@@ -1,5 +1,5 @@
 /* Guarda o app no aparelho para abrir sem internet. Troque VERSAO ao atualizar os arquivos. */
-const VERSAO = 'meu-repertorio-v9';
+const VERSAO = 'meu-repertorio-v10';
 const ARQUIVOS = [
   './', 'index.html', 'music-parser.js', 'engine.js', 'seed.js', 'supabase-config.js', 'supabase-sync.js', 'app.js', 'manifest.webmanifest',
   'fonts/bricolage.woff2', 'fonts/jetbrains-mono.woff2',
