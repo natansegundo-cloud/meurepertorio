@@ -20,7 +20,24 @@
 
   var SUFFIX_OK = /^(?:maj|min|dim|aug|sus|add|M|m|Δ|°|º|ø|\+|-|\d|[#b]|[()\/,.])*$/;
 
+  /* Alguns sites deixam caracteres invisíveis ou usam símbolos musicais
+     diferentes ao copiar a cifra. Eles não devem transformar a linha inteira
+     em letra. */
+  function normalizeChordToken(tok) {
+    return String(tok == null ? '' : tok)
+      .normalize('NFC')
+      .replace(/[\u200B-\u200D\u2060\uFEFF\u00AD]/g, '')
+      .replace(/[♯＃]/g, '#')
+      .replace(/[♭]/g, 'b')
+      .trim();
+  }
+
+  function unwrapToken(tok) {
+    return tok.replace(/^[([{]+/, '').replace(/[)\]}]+$/, '');
+  }
+
   function parseChord(tok) {
+    tok = normalizeChordToken(tok);
     var m = /^([A-G])([#b]?)/.exec(tok);
     if (!m) return null;
     var root = m[1] + m[2];
@@ -45,11 +62,9 @@
 
   /* aceita "(A7M", "D7M)", "A," etc. */
   function chordOf(tok) {
-    var p = parseChord(tok);
+    var t = normalizeChordToken(tok), p = parseChord(t);
     if (p) return p;
-    var t = tok.replace(/^\(+/, '');
-    if ((p = parseChord(t))) return p;
-    t = t.replace(/\)+$/, '');
+    t = unwrapToken(t);
     if ((p = parseChord(t))) return p;
     t = t.replace(/[,.;:*]+$/, '');
     return parseChord(t);
@@ -68,7 +83,7 @@
     if (!t.length) return false;
     for (var i = 0; i < t.length; i++) {
       if (chordOf(t[i].text)) n++;
-      else if (!IGNORE.test(t[i].text)) return false;
+      else if (!IGNORE.test(unwrapToken(normalizeChordToken(t[i].text)))) return false;
     }
     return n > 0;
   }
@@ -130,6 +145,7 @@
   }
 
   function cleanTok(t) {
+    t = normalizeChordToken(t);
     var p = parseChord(t) ? t : t.replace(/^\(+/, '');
     if (!parseChord(p)) p = p.replace(/\)+$/, '');
     if (!parseChord(p)) p = p.replace(/[,.;:*]+$/, '');
@@ -392,6 +408,8 @@
   }
 
   function importText(raw) {
+    var musicParser = typeof globalThis !== 'undefined' && globalThis.MusicParser;
+    if (musicParser && musicParser.parse) return musicParser.parse(raw);
     var lines = String(raw || '').replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ').replace(/\t/g, '    ').split('\n');
     var rep = { glued: 0, joined: 0, removed: 0 };
     var meta = { title: '', artist: '', key: '', capo: '' };

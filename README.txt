@@ -18,7 +18,8 @@ COMO INSTALAR NO CELULAR
 - Abra uma vez com internet para o cache offline ser criado.
 
 COMO ADICIONAR MÚSICAS
-- Cole a cifra completa, confira a prévia e toque em Salvar.
+- Cole a cifra completa e toque em “Importar e salvar”; o app interpreta e salva
+  diretamente. Músicas já cadastradas continuam editáveis normalmente.
 - Importe um PDF ou TXT; o PDF original fica guardado junto da cifra.
 - Para vários arquivos, escolha todos de uma vez.
 
@@ -26,9 +27,13 @@ DADOS E BACKUP
 As cifras ficam no aparelho (IndexedDB). Celular e computador não sincronizam
 sozinhos até você entrar na nuvem. Use Menu > Sincronizar na nuvem para entrar
 com o link enviado por e-mail. O backup manual continua disponível em Menu.
+Os repertórios ficam no mesmo aparelho, podem organizar as músicas em ordem e
+também entram no backup. Para sincronizá-los, execute a versão atualizada de
+supabase-setlists.sql no projeto Supabase.
 
 CONFIGURAÇÃO DA NUVEM
-1. No Supabase, abra o SQL Editor e execute supabase/schema.sql.
+1. No Supabase, abra o SQL Editor e execute supabase/schema.sql e
+   supabase-setlists.sql.
 2. Em Authentication > URL Configuration, adicione o endereço publicado na Vercel.
 3. No app, abra Menu > Sincronizar na nuvem e entre com seu e-mail.
 4. Nunca coloque uma secret/service_role key no navegador; o app usa somente a
@@ -41,6 +46,7 @@ buscarem a versão nova do app.
 ARQUIVOS
 index.html  tela e estilos
 app.js      telas, importação e backup
+music-parser.js  importador independente de cifras e letras
 engine.js   leitura, transposição e diagramas de acorde
 seed.js     cifras de exemplo
 sw.js       cache offline

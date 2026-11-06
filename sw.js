@@ -1,7 +1,7 @@
 /* Guarda o app no aparelho para abrir sem internet. Troque VERSAO ao atualizar os arquivos. */
-const VERSAO = 'meu-repertorio-v3';
+const VERSAO = 'meu-repertorio-v8';
 const ARQUIVOS = [
-  './', 'index.html', 'engine.js', 'seed.js', 'supabase-config.js', 'supabase-sync.js', 'app.js', 'manifest.webmanifest',
+  './', 'index.html', 'music-parser.js', 'engine.js', 'seed.js', 'supabase-config.js', 'supabase-sync.js', 'app.js', 'manifest.webmanifest',
   'fonts/bricolage.woff2', 'fonts/jetbrains-mono.woff2',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png',
   'vendor/pdf.min.js', 'vendor/pdf.worker.min.js', 'vendor/supabase.js'
