@@ -29,12 +29,21 @@ test('cola, interpreta e salva diretamente sem etapa de prévia', async ({ page 
   expect(song.structure.lines[0].chords[1].position).toBe(11);
   await expect(page.locator('#stripwrap .strip')).toHaveCount(0);
   await page.locator('[data-act="smenu"]').click();
-  await expect(page.locator('[data-act="strip"]')).toContainText('Mostrar desenhos');
+  await expect(page.locator('[data-act="strip"]')).toContainText('Desenhos de acordes');
   await page.locator('[data-act="strip"]').click();
   await expect(page.locator('#stripwrap .strip')).toHaveCount(1);
   await page.locator('[data-act="smenu"]').click();
   await page.locator('[data-act="strip"]').click();
   await expect(page.locator('#stripwrap .strip')).toHaveCount(0);
+  expect(await page.locator('body').evaluate(el => el.classList.contains('reading-mode'))).toBeTruthy();
+  await page.locator('.song .ch').first().click();
+  await expect(page.locator('#cc')).toBeHidden();
+  await page.locator('[data-act="smenu"]').click();
+  await page.locator('[data-act="diagram"]').click();
+  await page.keyboard.press('Escape');
+  await page.locator('.song .ch').first().click();
+  await expect(page.locator('#cc')).toBeVisible();
+  await page.keyboard.press('Escape');
 });
 
 test('não salva conteúdo inválido', async ({ page }) => {

@@ -63,6 +63,22 @@ test('editor e modo show funcionam no celular', async ({ page }) => {
   await page.context().setOffline(false);
 });
 
+test('salvar edição mantém a música e o voltar retorna à lista', async ({ page }) => {
+  await seedFixture(page);
+  await page.goto('/index.html#lista');
+  await page.locator('a[href="#musica-pw-a"]').click();
+  await expect(page).toHaveURL(/#musica-pw-a$/);
+  await page.locator('[data-act="edit"]').click();
+  await expect(page.locator('#f-title')).toHaveValue('Playwright A');
+  await page.locator('#f-title').fill('Playwright A editada');
+  await page.locator('[data-act="save"]').click();
+  await expect(page).toHaveURL(/#musica-pw-a$/);
+  await expect(page.locator('.bar .ttl b')).toHaveText('Playwright A editada');
+  await page.locator('[data-act="back"]').click();
+  await expect(page).toHaveURL(/#lista$/);
+  await expect(page.locator('#ul')).toContainText('Playwright A editada');
+});
+
 test('migração de banco v1 preserva músicas', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
