@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
   var cfg = root.MEU_REPERTORIO_CONFIG || {}, client = null, user = null, status = 'indisponivel';
-  var hooks = {}, running = false, DELETE_KEY = 'mr:cloud-deletes';
+  var hooks = {}, running = false, lastError = '', DELETE_KEY = 'mr:cloud-deletes';
 
   function configured() { return !!(cfg.supabaseUrl && cfg.supabasePublishableKey && root.supabase && root.supabase.createClient); }
   function emit() { if (hooks.onStatus) hooks.onStatus(status, user); }
@@ -114,8 +114,8 @@
           return hooks.reload ? hooks.reload() : null;
         });
       })
-      .then(function () { running = false; setStatus('sincronizado'); return { ok: true }; })
-      .catch(function (e) { running = false; setStatus(root.navigator.onLine === false ? 'offline' : 'erro'); return { ok: false, error: e && e.message ? e.message : 'erro' }; });
+      .then(function () { running = false; lastError = ''; setStatus('sincronizado'); return { ok: true }; })
+      .catch(function (e) { running = false; lastError = e && e.message ? e.message : 'erro'; setStatus(root.navigator.onLine === false ? 'offline' : 'erro'); return { ok: false, error: lastError }; });
   }
 
   root.MeuRepertorioCloud = {
@@ -127,6 +127,7 @@
     downloadPdf: downloadPdf,
     getUser: function () { return user; },
     statusLabel: function () { return status; },
+    lastError: function () { return lastError; },
     queueUpsert: function (s) { if (s && s.id) clearDelete(String(s.id)); if (user && root.navigator.onLine !== false) setTimeout(syncNow, 0); },
     queueDelete: function (id) { if (!id) return; markDelete(String(id)); if (user && root.navigator.onLine !== false) setTimeout(syncNow, 0); },
     queueRepertoireUpsert: function (r) { if (user && root.navigator.onLine !== false) setTimeout(syncNow, 0); }

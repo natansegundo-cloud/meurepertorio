@@ -111,3 +111,6 @@ drop policy if exists "Users can delete their own setlists" on public.setlists;
 create policy "Users can delete their own setlists"
   on public.setlists for delete to authenticated
   using ((select auth.uid()) = user_id);
+
+-- Atualiza o cache de esquema do PostgREST para o app enxergar as mudanças na hora.
+notify pgrst, 'reload schema';

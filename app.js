@@ -722,13 +722,20 @@
   /* ---------- rolagem automática e tela acesa ---------- */
   var raf = 0, last = 0, acc = 0, wake = null;
   var SPEEDS = [6, 10, 15, 21, 28, 37, 48, 62, 80, 100];
+  function scrollingElement() { return document.scrollingElement || document.documentElement; }
   function loop(t) {
     if (!S.scroll.on) return;
     var dt = Math.min(0.1, (t - (last || t)) / 1000); last = t;
-    acc += SPEEDS[S.scroll.speed - 1] * dt;
+    var speed = Math.max(1, Math.min(10, Number(S.scroll.speed) || 3));
+    acc += (SPEEDS[speed - 1] || 15) * dt;
     var n = Math.floor(acc);
-    if (n) { window.scrollBy(0, n); acc -= n; }
-    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) { stopScroll(); if (S.view === 'song') renderTools(); else if (S.view === 'show') renderShowControls(); return; }
+    if (n > 0) {
+      var el = scrollingElement(), before = el.scrollTop;
+      el.scrollTop = before + n;
+      acc -= (el.scrollTop - before) || n;
+    }
+    var root = scrollingElement();
+    if (root.scrollTop + root.clientHeight >= root.scrollHeight - 2) { stopScroll(); if (S.view === 'song') renderTools(); else if (S.view === 'show') renderShowControls(); return; }
     raf = requestAnimationFrame(loop);
   }
   function startScroll() { S.scroll.on = true; last = 0; acc = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
@@ -736,9 +743,9 @@
   ['touchstart', 'wheel'].forEach(function (ev) {
     window.addEventListener(ev, function (e) {
       if (S.scroll.on && (S.view === 'song' || S.view === 'show')) {
-        /* O range dispara touchstart antes do arraste. Não recrie os controles
-           nesse momento, senão o próprio input desaparece no celular. */
-        if (e.target && e.target.closest && e.target.closest('#spd, #show-controls, .show-nav')) return;
+        /* O range/o botão de rolagem disparam touchstart antes do clique. Não
+           recrie os controles nem pare a rolagem nesse momento. */
+        if (e.target && e.target.closest && e.target.closest('#spd, [data-act="scroll"], [data-act="show-scroll"], #show-controls, .show-nav')) return;
         stopScroll(); if (S.view === 'show') renderShowControls(); else renderTools();
       }
     }, { passive: true });
@@ -1061,6 +1068,7 @@
     if (!c || !c.isConfigured()) { openSheet(h + '<p>A sincronização na nuvem ainda não está configurada.</p>'); return; }
     if (user) {
       h += '<p>Conectado como <b>' + esc(user.email || 'sua conta') + '</b>.</p>';
+      if (c.lastError && c.lastError()) h += '<p>Último erro: ' + esc(c.lastError()) + '</p>';
       h += '<button data-act="cloud-sync">' + ic('up') + 'Sincronizar agora</button>';
       h += '<button data-act="cloud-logout">' + ic('x') + 'Sair desta conta</button>';
     } else {
@@ -1164,7 +1172,7 @@
         break;
       case 'menu': menuList(); break;
       case 'cloud': cloudMenu(); break;
-      case 'cloud-sync': closeSheet(); if (window.MeuRepertorioCloud) window.MeuRepertorioCloud.syncNow().then(function (r) { toast(r && r.ok ? 'Repertório sincronizado' : 'Não foi possível sincronizar agora', r && r.ok ? 'success' : 'error'); }); break;
+      case 'cloud-sync': closeSheet(); if (window.MeuRepertorioCloud) window.MeuRepertorioCloud.syncNow().then(function (r) { toast(r && r.ok ? 'Repertório sincronizado' : 'Não foi possível sincronizar' + (r && r.error ? ': ' + r.error : ''), r && r.ok ? 'success' : 'error'); }); break;
       case 'cloud-logout': closeSheet(); if (window.MeuRepertorioCloud) window.MeuRepertorioCloud.signOut().then(function () { toast('Sessão encerrada'); }); break;
       case 'cloud-login':
         var email = ($('#cloud-email') || {}).value || '';

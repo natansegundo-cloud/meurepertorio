@@ -1,5 +1,9 @@
 -- Execute este arquivo no SQL Editor do Supabase depois de atualizar o app.
 -- A chave secret/service_role nunca deve aparecer no navegador.
+-- Pode executar de novo sem risco: usa "if not exists" e recria as políticas.
+
+-- Coluna usada pelo interpretador de cifras (bancos criados antes dessa versão).
+alter table public.songs add column if not exists structure jsonb;
 
 create table if not exists public.setlists (
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
@@ -39,3 +43,6 @@ drop policy if exists "Users can delete their own setlists" on public.setlists;
 create policy "Users can delete their own setlists"
   on public.setlists for delete to authenticated
   using ((select auth.uid()) = user_id);
+
+-- Atualiza o cache de esquema do PostgREST para o app enxergar as mudanças na hora.
+notify pgrst, 'reload schema';
