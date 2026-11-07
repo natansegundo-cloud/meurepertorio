@@ -725,9 +725,15 @@
   }, { passive: false });
 
   /* ---------- rolagem automática e tela acesa ---------- */
-  var raf = 0, last = 0, acc = 0, wake = null;
+  var raf = 0, last = 0, acc = 0, wake = null, scrollStartedAt = 0;
   var SPEEDS = [6, 10, 15, 21, 28, 37, 48, 62, 80, 100];
   function scrollingElement() { return document.scrollingElement || document.documentElement; }
+  function setSmoothScroll(instant) {
+    try {
+      document.documentElement.style.scrollBehavior = instant ? 'auto' : '';
+      if (document.body) document.body.style.scrollBehavior = instant ? 'auto' : '';
+    } catch (e) {}
+  }
   function loop(t) {
     if (!S.scroll.on) return;
     var dt = Math.min(0.1, (t - (last || t)) / 1000); last = t;
@@ -735,21 +741,23 @@
     acc += (SPEEDS[speed - 1] || 15) * dt;
     var n = Math.floor(acc);
     if (n > 0) {
-      var el = scrollingElement(), before = el.scrollTop;
-      el.scrollTop = before + n;
-      acc -= (el.scrollTop - before) || n;
+      var el = scrollingElement(), before = el.scrollTop, next = before + n;
+      if (window.scrollTo) window.scrollTo(window.pageXOffset || 0, next); else el.scrollTop = next;
+      var after = scrollingElement().scrollTop;
+      acc -= Math.max(0, after - before) || n;
     }
     var root = scrollingElement();
     if (root.scrollTop + root.clientHeight >= root.scrollHeight - 2) { stopScroll(); if (S.view === 'song') renderTools(); else if (S.view === 'show') renderShowControls(); return; }
     raf = requestAnimationFrame(loop);
   }
-  function startScroll() { S.scroll.on = true; last = 0; acc = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
-  function stopScroll() { S.scroll.on = false; cancelAnimationFrame(raf); }
+  function startScroll() { S.scroll.on = true; last = 0; acc = 0; scrollStartedAt = Date.now(); setSmoothScroll(true); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
+  function stopScroll() { S.scroll.on = false; cancelAnimationFrame(raf); setSmoothScroll(false); }
   ['touchstart', 'wheel'].forEach(function (ev) {
     window.addEventListener(ev, function (e) {
       if (S.scroll.on && (S.view === 'song' || S.view === 'show')) {
         /* O range/o botão de rolagem disparam touchstart antes do clique. Não
            recrie os controles nem pare a rolagem nesse momento. */
+        if (Date.now() - scrollStartedAt < 500) return;
         if (e.target && e.target.closest && e.target.closest('#spd, [data-act="scroll"], [data-act="show-scroll"], #show-controls, .show-nav')) return;
         stopScroll(); if (S.view === 'show') renderShowControls(); else renderTools();
       }
