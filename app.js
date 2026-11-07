@@ -6,6 +6,11 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var norm = function (s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
+  var standardName = function (s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toUpperCase(); };
+  function standardizeSongList(list) {
+    (list || []).forEach(function (song) { song.title = standardName(song.title); song.artist = standardName(song.artist); });
+    return list || [];
+  }
 
   /* ---------- ícones ---------- */
   var P = {
@@ -69,8 +74,8 @@
     }).catch(function () { useMem = true; return fn(null, true); });
   }
   var DB = {
-    all: function () { return tx('songs', 'readonly', function (s, m) { return m ? Object.keys(mem).map(function (k) { return mem[k]; }) : s.getAll(); }); },
-    put: function (o, silent) { var p = tx('songs', 'readwrite', function (s, m) { if (m) { mem[o.id] = o; return null; } return s.put(o); }); if (!silent && window.MeuRepertorioCloud) window.MeuRepertorioCloud.queueUpsert(o); return p; },
+    all: function () { return tx('songs', 'readonly', function (s, m) { return m ? Object.keys(mem).map(function (k) { return mem[k]; }) : s.getAll(); }).then(standardizeSongList); },
+    put: function (o, silent) { if (o) { o.title = standardName(o.title); o.artist = standardName(o.artist); } var p = tx('songs', 'readwrite', function (s, m) { if (m) { mem[o.id] = o; return null; } return s.put(o); }); if (!silent && window.MeuRepertorioCloud) window.MeuRepertorioCloud.queueUpsert(o); return p; },
     del: function (id, silent) { var p = tx('songs', 'readwrite', function (s, m) { if (m) { delete mem[id]; return null; } return s.delete(id); }); if (!silent && window.MeuRepertorioCloud) window.MeuRepertorioCloud.queueDelete(id); return p; },
     allRepertoires: function () { return tx('setlists', 'readonly', function (s, m) { return m ? Object.keys(memSetlists).map(function (k) { return memSetlists[k]; }) : s.getAll(); }); },
     putRepertoire: function (o, silent) { var p = tx('setlists', 'readwrite', function (s, m) { if (m) { memSetlists[o.id] = o; return null; } return s.put(o); }); if (!silent && window.MeuRepertorioCloud && window.MeuRepertorioCloud.queueRepertoireUpsert) window.MeuRepertorioCloud.queueRepertoireUpsert(o); return p; }
@@ -339,7 +344,7 @@
     ul.innerHTML = list.map(function (s) {
       var ctx = ctxFor(s);
       var fav = isFav(s) ? '<span class="fav" aria-label="Música favorita">' + ic('starFill', 14) + '</span>' : '';
-      return '<li><a href="#musica-' + s.id + '"><span class="t">' + fav + esc(s.title) + '</span><span class="a">' + esc(s.artist || 'Sem artista') + '</span>' +
+      return '<li><a href="#musica-' + s.id + '"><span class="t">' + fav + esc(s.title) + '</span><span class="a">' + esc(s.artist || 'SEM ARTISTA') + '</span>' +
         (s.key || firstChordOf(s) ? '<span class="k">' + esc(tomLabel(s, ctx)) + '</span>' : '') + '</a></li>';
     }).join('');
   }
@@ -392,14 +397,14 @@
     var q = norm(d.songQ || ''), songs = S.songs.filter(function (s) { return !q || norm(s.title + ' ' + s.artist).indexOf(q) >= 0; }).sort(function (a, b) { return norm(a.title).localeCompare(norm(b.title)); });
     picker.innerHTML = songs.length ? songs.map(function (song) {
       var checked = d.items.some(function (item) { return String(item.songId) === String(song.id); });
-      return '<li><label class="rep-pick"><input type="checkbox" data-rep-song-id="' + esc(song.id) + '"' + (checked ? ' checked' : '') + '><span><b>' + esc(song.title) + '</b><small>' + esc(song.artist || 'Sem artista') + '</small></span><em>' + esc(tomLabel(song, ctxFor(song))) + '</em></label></li>';
+      return '<li><label class="rep-pick"><input type="checkbox" data-rep-song-id="' + esc(song.id) + '"' + (checked ? ' checked' : '') + '><span><b>' + esc(song.title) + '</b><small>' + esc(song.artist || 'SEM ARTISTA') + '</small></span><em>' + esc(tomLabel(song, ctxFor(song))) + '</em></label></li>';
     }).join('') : '<li class="empty">Nenhuma música encontrada.</li>';
   }
 
   function repertoireItemHTML(item, i, total) {
     var song = songById(item.songId), disabledUp = i === 0 ? ' disabled' : '', disabledDown = i === total - 1 ? ' disabled' : '';
     if (!song) return '<li class="rep-item rep-removed" data-rep-index="' + i + '"><button class="rep-handle" type="button" aria-label="Arrastar música removida">⋮⋮</button><span class="rep-pos">' + (i + 1) + '</span><div class="rep-item-main"><b>Música removida</b><small>O arquivo original não está mais neste aparelho.</small></div><div class="rep-item-actions"><button class="ib" data-act="rep-item-up" data-rep-index="' + i + '" aria-label="Subir música"' + disabledUp + '>' + ic('up', 16) + '</button><button class="ib" data-act="rep-item-down" data-rep-index="' + i + '" aria-label="Descer música"' + disabledDown + '>' + ic('down', 16) + '</button><button class="ib" data-act="rep-item-remove" data-rep-index="' + i + '" aria-label="Remover música removida">' + ic('trash', 16) + '</button></div></li>';
-    return '<li class="rep-item" data-rep-index="' + i + '"><button class="rep-handle" type="button" aria-label="Arrastar ' + esc(song.title) + '">⋮⋮</button><span class="rep-pos">' + (i + 1) + '</span><div class="rep-item-main"><b>' + esc(song.title) + '</b><small>' + esc(song.artist || 'Sem artista') + ' · ' + esc(repItemText(song, item)) + (item.semi != null || item.pref ? ' · tom próprio' : '') + '</small></div><div class="rep-item-actions"><button class="ib" data-act="rep-tone-minus" data-rep-index="' + i + '" aria-label="Baixar o tom">' + ic('minus', 16) + '</button><button class="ib" data-act="rep-tone-plus" data-rep-index="' + i + '" aria-label="Subir o tom">' + ic('plus', 16) + '</button><button class="ib" data-act="rep-tone-pref" data-rep-index="' + i + '" aria-label="Alternar preferência de acidente">♯♭</button><button class="ib" data-act="rep-tone-reset" data-rep-index="' + i + '" aria-label="Usar tom da música">' + ic('back', 16) + '</button><button class="ib" data-act="rep-item-up" data-rep-index="' + i + '" aria-label="Subir música"' + disabledUp + '>' + ic('up', 16) + '</button><button class="ib" data-act="rep-item-down" data-rep-index="' + i + '" aria-label="Descer música"' + disabledDown + '>' + ic('down', 16) + '</button><button class="ib" data-act="rep-item-remove" data-rep-index="' + i + '" aria-label="Remover música">' + ic('trash', 16) + '</button></div></li>';
+    return '<li class="rep-item" data-rep-index="' + i + '"><button class="rep-handle" type="button" aria-label="Arrastar ' + esc(song.title) + '">⋮⋮</button><span class="rep-pos">' + (i + 1) + '</span><div class="rep-item-main"><b>' + esc(song.title) + '</b><small>' + esc(song.artist || 'SEM ARTISTA') + ' · ' + esc(repItemText(song, item)) + (item.semi != null || item.pref ? ' · tom próprio' : '') + '</small></div><div class="rep-item-actions"><button class="ib" data-act="rep-tone-minus" data-rep-index="' + i + '" aria-label="Baixar o tom">' + ic('minus', 16) + '</button><button class="ib" data-act="rep-tone-plus" data-rep-index="' + i + '" aria-label="Subir o tom">' + ic('plus', 16) + '</button><button class="ib" data-act="rep-tone-pref" data-rep-index="' + i + '" aria-label="Alternar preferência de acidente">♯♭</button><button class="ib" data-act="rep-tone-reset" data-rep-index="' + i + '" aria-label="Usar tom da música">' + ic('back', 16) + '</button><button class="ib" data-act="rep-item-up" data-rep-index="' + i + '" aria-label="Subir música"' + disabledUp + '>' + ic('up', 16) + '</button><button class="ib" data-act="rep-item-down" data-rep-index="' + i + '" aria-label="Descer música"' + disabledDown + '>' + ic('down', 16) + '</button><button class="ib" data-act="rep-item-remove" data-rep-index="' + i + '" aria-label="Remover música">' + ic('trash', 16) + '</button></div></li>';
   }
 
   function saveRepertoire() {
@@ -823,7 +828,7 @@
   function applyImport(text, pdfBlob) {
     var r = MusicParser.parse(text), d = readDraft() || S.draft;
     if (!r.valid) { var importErr = $('#err'); if (importErr) importErr.textContent = r.errors.join(' '); return false; }
-    d.title = r.title || d.title; d.artist = r.artist || d.artist; d.key = r.key || d.key; d.body = r.body; d.report = r.report;
+    d.title = standardName(r.title || d.title); d.artist = standardName(r.artist || d.artist); d.key = r.key || d.key; d.body = r.body; d.report = r.report;
     d.structure = r.structure; d.imported = true;
     if (pdfBlob) d.pdf = pdfBlob;
     S.draft = d;
@@ -833,8 +838,8 @@
   function importAndSaveDraft() {
     var d = readDraft(), r = MusicParser.parse(d && d.body);
     if (!d || !r.valid) { var importErr = $('#err'); if (importErr) importErr.textContent = r.errors.join(' '); return; }
-    d.title = d.title || r.title || 'Música sem título';
-    d.artist = d.artist || r.artist || '';
+    d.title = standardName(d.title || r.title || 'Música sem título');
+    d.artist = standardName(d.artist || r.artist || '');
     d.key = d.key || r.key || '';
     d.body = r.body; d.structure = r.structure; d.report = r.report; d.imported = true;
     $('#f-title').value = d.title; $('#f-artist').value = d.artist; $('#f-key').value = d.key; $('#f-body').value = d.body;
@@ -847,7 +852,7 @@
     var parsed = MusicParser.parse(d.body, { extractMeta: false });
     if (!parsed.valid) { $('#err').textContent = parsed.errors.join(' '); return; }
     var old = S.songs.filter(function (s) { return s.id === d.id; })[0];
-    var song = { id: d.id, title: d.title, artist: d.artist, key: d.key, body: parsed.body.replace(/\s+$/, ''), structure: parsed.structure, createdAt: d.createdAt || Date.now(), updatedAt: Date.now(), semi: old ? old.semi || 0 : 0, pref: old ? old.pref || 'auto' : 'auto' };
+    var song = { id: d.id, title: standardName(d.title), artist: standardName(d.artist), key: d.key, body: parsed.body.replace(/\s+$/, ''), structure: parsed.structure, createdAt: d.createdAt || Date.now(), updatedAt: Date.now(), semi: old ? old.semi || 0 : 0, pref: old ? old.pref || 'auto' : 'auto' };
     if (d.pdf) song.pdf = d.pdf;
     if (d.pdfPath) song.pdfPath = d.pdfPath;
     DB.put(song).then(loadSongs).then(function () {
@@ -933,7 +938,7 @@
         var imp = MusicParser.parse(r.text);
         if (!imp.valid) { toast(imp.errors.join(' ')); return; }
         if (!imp.title) imp.title = r.name.replace(/\.[^.]+$/, '');
-        S.draft.title = imp.title; S.draft.artist = imp.artist; S.draft.key = imp.key; S.draft.body = imp.body; S.draft.report = imp.report;
+        S.draft.title = standardName(imp.title); S.draft.artist = standardName(imp.artist); S.draft.key = imp.key; S.draft.body = imp.body; S.draft.report = imp.report;
         S.draft.structure = imp.structure; S.draft.imported = true;
         if (r.pdf) S.draft.pdf = r.pdf;
         if (location.hash === '#nova') showEditor(null); else location.hash = '#nova';
